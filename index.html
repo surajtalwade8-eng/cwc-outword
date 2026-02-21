@@ -1,0 +1,599 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Outward Management</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Arial,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;padding:10px;}
+.container{max-width:1400px;margin:auto;background:white;border-radius:15px;box-shadow:0 15px 35px rgba(0,0,0,0.2);}
+.header{background:linear-gradient(135deg,#1e3c72,#2a5298);color:white;padding:25px;text-align:center;}
+.header h1{font-size:2em;}
+.logout{position:absolute;top:20px;right:20px;padding:10px 20px;background:#f44336;color:white;border:none;border-radius:20px;cursor:pointer;}
+.tabs{display:flex;background:#f5f5f5;border-bottom:2px solid #eee;}
+.tab{flex:1;padding:15px;text-align:center;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;}
+.tab:hover{background:#e9e9e9;}
+.tab.active{color:#667eea;border-bottom-color:#667eea;background:white;}
+.content{padding:25px;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+.form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:15px;margin-bottom:25px;}
+input,textarea,select{padding:12px;border:2px solid #ddd;border-radius:8px;font-size:15px;width:100%;}
+input:focus,textarea:focus,select:focus{border-color:#667eea;box-shadow:0 0 5px rgba(102,126,234,0.3);outline:none;}
+textarea{min-height:70px;}
+.btn{padding:12px 30px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:25px;cursor:pointer;font-weight:600;font-size:15px;margin:5px;transition:all 0.3s;}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(102,126,234,0.4);}
+.btn-success{background:linear-gradient(135deg,#4caf50,#45a049);}
+.btn-warning{background:linear-gradient(135deg,#ff9800,#f57c00);}
+.filters{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;align-items:center;}
+.filters input,.filters select{padding:10px;border:2px solid #ddd;border-radius:6px;width:auto;}
+.table-wrap{overflow:auto;border-radius:10px;box-shadow:0 5px 15px rgba(0,0,0,0.1);margin-bottom:20px;}
+table{width:100%;border-collapse:collapse;background:white;min-width:900px;}
+th{padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;text-align:left;font-weight:600;white-space:nowrap;}
+td{padding:10px;border-bottom:1px solid #eee;}
+tr:hover{background:#f8f9fa;}
+.action-btn{padding:5px 12px;margin:0 2px;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;}
+.edit-btn{background:#ff9800;color:white;}
+.delete-btn{background:#f44336;color:white;}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:25px;}
+.stat{background:linear-gradient(135deg,#f093fb,#f5576c);color:white;padding:20px;border-radius:12px;text-align:center;}
+.stat h3{font-size:2.2em;margin-bottom:5px;}
+.import-section{background:#f8f9fa;padding:20px;border-radius:10px;margin-bottom:20px;border:2px dashed #ddd;}
+.file-label{display:inline-block;padding:12px 25px;background:#4caf50;color:white;border-radius:25px;cursor:pointer;font-weight:600;}
+.import-progress{margin-top:10px;padding:10px;background:#e8f5e8;border-radius:5px;display:none;}
+.activity-item{padding:15px;margin-bottom:10px;border-radius:8px;border-left:4px solid #667eea;background:white;box-shadow:0 2px 5px rgba(0,0,0,0.05);}
+.activity-item.added{border-left-color:#4caf50;}
+.activity-item.edited{border-left-color:#ff9800;}
+.activity-item.deleted{border-left-color:#f44336;}
+.activity-item.imported{border-left-color:#2196f3;}
+.activity-header{display:flex;justify-content:space-between;font-size:13px;color:#666;margin-bottom:5px;}
+.activity-details{font-weight:500;}
+.sync-indicator{position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;color:white;font-weight:600;z-index:1000;display:none;}
+.empty-state{text-align:center;padding:50px;color:#999;}
+h2,h3{margin-bottom:20px;color:#333;}
+#userInfo{margin-top:10px;font-size:14px;}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <button class="logout" onclick="logout()">Logout</button>
+        <h1>📦 Outward Management</h1>
+        <p>Complete Working System - All Fixed</p>
+        <div id="userInfo">👨‍💼 Admin</div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('entry')">📝 Entry</div>
+        <div class="tab" onclick="showTab('records')">📋 Records (<span id="recordCount">0</span>)</div>
+        <div class="tab" onclick="showTab('reports')">📊 Reports</div>
+        <div class="tab" onclick="showTab('activity')">📜 Activity (<span id="activityCount">0</span>)</div>
+    </div>
+
+    <div class="content">
+        <div id="entry" class="tab-content active">
+            <h2>➕ New Entry</h2>
+            <div class="import-section">
+                <h3>📤 Import Excel</h3>
+                <input type="file" id="excelFile" accept=".xlsx,.xls" onchange="importExcel(event)" style="display:none;">
+                <label for="excelFile" class="file-label">📂 Choose Excel File</label>
+                <div style="margin-top:10px;color:#666;font-size:14px;">Format: Date|Model|Qty|Serial|Address|DC|GEM|Docket</div>
+                <div id="importProgress" class="import-progress"></div>
+            </div>
+            <form onsubmit="saveEntry(event)">
+                <div class="form-row">
+                    <div><label>Date *</label><input type="date" id="date" required></div>
+                    <div><label>Model *</label><input type="text" id="model" required></div>
+                    <div><label>Qty *</label><input type="number" id="qty" min="1" required></div>
+                    <div><label>Serial No</label><input type="text" id="serialNo"></div>
+                    <div><label>Address</label><textarea id="address"></textarea></div>
+                    <div><label>DC No</label><input type="text" id="dcNo"></div>
+                    <div><label>GEM Invoice</label><input type="text" id="gemInvoice"></div>
+                    <div><label>Docket</label><input type="text" id="docket"></div>
+                </div>
+                <div style="text-align:center;">
+                    <button type="submit" class="btn btn-success">💾 Save Entry</button>
+                    <button type="button" class="btn" onclick="resetForm()">🔄 Reset</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="records" class="tab-content">
+            <h2>📋 All Records</h2>
+            <div class="filters">
+                <input type="date" id="fDateFrom" placeholder="From Date">
+                <input type="date" id="fDateTo" placeholder="To Date">
+                <input type="text" id="fModel" placeholder="Search Model" style="min-width:200px;">
+                <button class="btn" onclick="filterRecords()">🔍 Filter</button>
+                <button class="btn btn-success" onclick="exportRecordsExcel()">📥 Export Excel</button>
+                <button class="btn" onclick="clearRecordsFilter()">✖ Clear</button>
+            </div>
+            <div id="recordsList"></div>
+        </div>
+
+        <div id="reports" class="tab-content">
+            <h2>📊 Reports & Analytics</h2>
+            <div class="stats" id="stats"></div>
+            <h3>📅 Daily Activity Report</h3>
+            <div class="filters">
+                <input type="date" id="reportDate">
+                <button class="btn" onclick="showDailyReport()">📊 Generate Report</button>
+                <button class="btn btn-warning" onclick="exportDetailedPDF()">📄 Export Detailed PDF</button>
+            </div>
+            <div id="dailyReport"></div>
+            <h3 style="margin-top:30px;">📦 Model-wise Summary</h3>
+            <div id="modelReport"></div>
+        </div>
+
+        <div id="activity" class="tab-content">
+            <h2>📜 Activity Log</h2>
+            <div class="filters">
+                <input type="date" id="aDate">
+                <select id="aType">
+                    <option value="">All Activities</option>
+                    <option value="added">Added</option>
+                    <option value="edited">Edited</option>
+                    <option value="deleted">Deleted</option>
+                    <option value="imported">Imported</option>
+                </select>
+                <button class="btn" onclick="filterActivity()">🔍 Filter</button>
+                <button class="btn" onclick="clearActivityFilter()">✖ Clear</button>
+            </div>
+            <div id="activityList"></div>
+        </div>
+    </div>
+</div>
+<div id="sync" class="sync-indicator"></div>
+
+<script>
+let data=[],logs=[],editId=null;
+
+function init(){
+    document.getElementById('date').valueAsDate=new Date();
+    document.getElementById('reportDate').valueAsDate=new Date();
+    loadStorage();
+    showTab('entry');
+}
+
+function loadStorage(){
+    const d=localStorage.getItem('data');
+    if(d)data=JSON.parse(d);
+    const l=localStorage.getItem('logs');
+    if(l)logs=JSON.parse(l);
+    updateCounts();
+}
+
+function updateCounts(){
+    document.getElementById('recordCount').textContent=data.length;
+    document.getElementById('activityCount').textContent=logs.length;
+}
+
+function showTab(tab){
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.getElementById(tab).classList.add('active');
+    event.target.classList.add('active');
+    if(tab==='records')showRecords();
+    if(tab==='reports')showReports();
+    if(tab==='activity')showActivity();
+}
+
+function saveEntry(e){
+    e.preventDefault();
+    const entry={
+        id:editId||Date.now(),
+        date:document.getElementById('date').value,
+        model:document.getElementById('model').value.trim(),
+        qty:+document.getElementById('qty').value,
+        serialNo:document.getElementById('serialNo').value.trim(),
+        address:document.getElementById('address').value.trim(),
+        dcNo:document.getElementById('dcNo').value.trim(),
+        gemInvoice:document.getElementById('gemInvoice').value.trim(),
+        docket:document.getElementById('docket').value.trim()
+    };
+    if(editId){
+        const i=data.findIndex(r=>r.id===editId);
+        data[i]=entry;
+        addLog('edited','Edited: '+entry.model);
+    }else{
+        data.push(entry);
+        addLog('added','Added: '+entry.model+' (Qty: '+entry.qty+')');
+    }
+    saveData();
+    resetForm();
+    showSync('✅ Entry Saved!','success');
+    showTab('records');
+}
+
+function resetForm(){
+    document.querySelector('form').reset();
+    document.getElementById('date').valueAsDate=new Date();
+    editId=null;
+}
+
+function showRecords(fdata=null){
+    const list=document.getElementById('recordsList');
+    const displayData=fdata||data;
+    document.getElementById('recordCount').textContent=data.length;
+
+    if(displayData.length===0){
+        list.innerHTML='<div class="empty-state"><h3>📭 No Records Found</h3><p>Add entries or import Excel to see records</p></div>';
+        return;
+    }
+
+    let html='<div class="table-wrap"><table><thead><tr>';
+    html+='<th>Date</th><th>Model</th><th>Qty</th><th>Serial No</th><th>Address</th><th>DC No</th><th>GEM Invoice</th><th>Docket</th><th>Actions</th>';
+    html+='</tr></thead><tbody>';
+
+    displayData.sort((a,b)=>new Date(b.date)-new Date(a.date)).forEach(r=>{
+        html+=`<tr>
+            <td>${new Date(r.date).toLocaleDateString('hi-IN')}</td>
+            <td><strong>${r.model}</strong></td>
+            <td style="color:#4caf50;font-weight:600;">${r.qty}</td>
+            <td>${r.serialNo||'-'}</td>
+            <td>${r.address||'-'}</td>
+            <td>${r.dcNo||'-'}</td>
+            <td>${r.gemInvoice||'-'}</td>
+            <td>${r.docket||'-'}</td>
+            <td style="white-space:nowrap;">
+                <button class="action-btn edit-btn" onclick="editRecord(${r.id})">Edit</button>
+                <button class="action-btn delete-btn" onclick="deleteRecord(${r.id})">Delete</button>
+            </td>
+        </tr>`;
+    });
+    html+='</tbody></table></div>';
+    list.innerHTML=html;
+}
+
+function filterRecords(){
+    const from=document.getElementById('fDateFrom').value;
+    const to=document.getElementById('fDateTo').value;
+    const model=document.getElementById('fModel').value.toLowerCase().trim();
+
+    const filtered=data.filter(r=>{
+        if(from && r.date<from)return false;
+        if(to && r.date>to)return false;
+        if(model && !r.model.toLowerCase().includes(model))return false;
+        return true;
+    });
+
+    showRecords(filtered);
+    showSync(`🔍 Found ${filtered.length} records`,'success');
+}
+
+function clearRecordsFilter(){
+    document.getElementById('fDateFrom').value='';
+    document.getElementById('fDateTo').value='';
+    document.getElementById('fModel').value='';
+    showRecords();
+    showSync('✖ Filters cleared','success');
+}
+
+function exportRecordsExcel(){
+    if(data.length===0){
+        showSync('❌ No records to export!','error');
+        return;
+    }
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet([
+        ['Date','Model','Qty','Serial No','Address','DC No','GEM Invoice','Docket'],
+        ...data.map(r=>[r.date,r.model,r.qty,r.serialNo,r.address,r.dcNo,r.gemInvoice,r.docket])
+    ]);
+    XLSX.utils.book_append_sheet(wb,ws,'Records');
+    XLSX.writeFile(wb,`outward-records-${new Date().toISOString().split('T')[0]}.xlsx`);
+    showSync('📥 Excel exported successfully!','success');
+}
+
+function showReports(){
+    const total=data.length;
+    const qty=data.reduce((s,r)=>s+r.qty,0);
+    const models=new Set(data.map(r=>r.model)).size;
+    document.getElementById('stats').innerHTML=`
+        <div class="stat"><h3>${total}</h3><p>Total Records</p></div>
+        <div class="stat" style="background:linear-gradient(135deg,#4facfe,#00f2fe);"><h3>${qty}</h3><p>Total Quantity</p></div>
+        <div class="stat" style="background:linear-gradient(135deg,#43e97b,#38f9d7);"><h3>${models}</h3><p>Unique Models</p></div>
+    `;
+    showDailyReport();
+    showModelReport();
+}
+
+function showDailyReport(){
+    const date=document.getElementById('reportDate').value;
+    const dayLogs=logs.filter(l=>new Date(l.time).toISOString().split('T')[0]===date);
+    const cont=document.getElementById('dailyReport');
+
+    if(dayLogs.length===0){
+        cont.innerHTML='<div class="empty-state"><h3>📭 No activity on this date</h3></div>';
+        return;
+    }
+
+    let html='<div class="table-wrap"><table><thead><tr><th>Time</th><th>Type</th><th>Details</th></tr></thead><tbody>';
+    dayLogs.slice().reverse().forEach(l=>{
+        html+=`<tr>
+            <td>${new Date(l.time).toLocaleTimeString('hi-IN')}</td>
+            <td><strong>${l.type.toUpperCase()}</strong></td>
+            <td>${l.details}</td>
+        </tr>`;
+    });
+    html+='</tbody></table></div>';
+    cont.innerHTML=html;
+}
+
+function showModelReport(){
+    const modelData={};
+    data.forEach(r=>{
+        if(!modelData[r.model])modelData[r.model]={qty:0,count:0};
+        modelData[r.model].qty+=r.qty;
+        modelData[r.model].count++;
+    });
+
+    let html='<div class="table-wrap"><table><thead><tr><th>Model</th><th>Total Qty</th><th>Entries</th></tr></thead><tbody>';
+    Object.entries(modelData).sort((a,b)=>b[1].qty-a[1].qty).forEach(([m,d])=>{
+        html+=`<tr><td><strong>${m}</strong></td><td style="color:#4caf50;font-weight:600;">${d.qty}</td><td>${d.count}</td></tr>`;
+    });
+    html+='</tbody></table></div>';
+    document.getElementById('modelReport').innerHTML=html;
+}
+
+function exportDetailedPDF(){
+    if(data.length===0){
+        showSync('❌ No data to export!','error');
+        return;
+    }
+
+    const date=document.getElementById('reportDate').value;
+    const dayData=data.filter(r=>r.date===date);
+    const dayLogs=logs.filter(l=>new Date(l.time).toISOString().split('T')[0]===date);
+
+    let html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Outward Report - ${new Date(date).toLocaleDateString('hi-IN')}</title>
+<style>
+body{font-family:Arial,sans-serif;margin:30px;background:white;line-height:1.6;}
+h1{text-align:center;color:#1e3c72;border-bottom:3px solid #667eea;padding-bottom:10px;}
+h2{color:#333;margin-top:30px;background:#f5f5f5;padding:10px;border-left:5px solid #667eea;}
+table{width:100%;border-collapse:collapse;margin:20px 0;font-size:14px;}
+th,td{border:1px solid #ddd;padding:10px;text-align:left;}
+th{background:#667eea;color:white;font-weight:600;}
+tr:nth-child(even){background:#f9f9f9;}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin:20px 0;}
+.summary-box{background:#f5f5f5;padding:15px;border-radius:8px;text-align:center;border-left:5px solid #667eea;}
+.summary-box h3{font-size:2em;margin:0;color:#667eea;}
+.summary-box p{margin:5px 0 0;color:#666;}
+.log-item{padding:12px;margin:10px 0;border-left:5px solid;background:#f9f9f9;border-radius:5px;}
+.log-item.added{border-color:#4caf50;background:#e8f5e9;}
+.log-item.edited{border-color:#ff9800;background:#fff3e0;}
+.log-item.deleted{border-color:#f44336;background:#ffebee;}
+.log-item.imported{border-color:#2196f3;background:#e3f2fd;}
+@media print{body{margin:15px;}.no-print{display:none;}}
+</style>
+</head><body>
+<h1>📦 Daily Outward Report</h1>
+<p style="text-align:center;font-size:18px;color:#666;">Date: ${new Date(date).toLocaleDateString('hi-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p>
+
+<div class="summary">
+    <div class="summary-box"><h3>${dayData.length}</h3><p>Records Today</p></div>
+    <div class="summary-box"><h3>${dayData.reduce((s,r)=>s+r.qty,0)}</h3><p>Total Quantity</p></div>
+    <div class="summary-box"><h3>${dayLogs.length}</h3><p>Activities</p></div>
+</div>
+
+<h2>📋 Outward Entries (${dayData.length} records)</h2>
+<table>
+<thead><tr>
+    <th>Date</th><th>Model</th><th>Qty</th><th>Serial No</th><th>Address</th><th>DC No</th><th>GEM Invoice</th><th>Docket</th>
+</tr></thead>
+<tbody>`;
+
+    if(dayData.length>0){
+        dayData.forEach(r=>{
+            html+=`<tr>
+                <td>${new Date(r.date).toLocaleDateString('hi-IN')}</td>
+                <td><strong>${r.model}</strong></td>
+                <td style="color:#4caf50;font-weight:600;">${r.qty}</td>
+                <td>${r.serialNo||'-'}</td>
+                <td>${r.address||'-'}</td>
+                <td>${r.dcNo||'-'}</td>
+                <td>${r.gemInvoice||'-'}</td>
+                <td>${r.docket||'-'}</td>
+            </tr>`;
+        });
+    }else{
+        html+='<tr><td colspan="8" style="text-align:center;color:#999;">No entries for this date</td></tr>';
+    }
+
+    html+=`</tbody></table>
+
+<h2>📜 Activity Log (${dayLogs.length} activities)</h2>`;
+
+    if(dayLogs.length>0){
+        dayLogs.slice().reverse().forEach(l=>{
+            html+=`<div class="log-item ${l.type}">
+                <strong>${l.type.toUpperCase()}</strong> | 
+                ${new Date(l.time).toLocaleString('hi-IN')} | 
+                ${l.details}
+            </div>`;
+        });
+    }else{
+        html+='<p style="text-align:center;color:#999;padding:20px;">No activity for this date</p>';
+    }
+
+    html+=`
+<div style="margin-top:50px;text-align:center;color:#999;border-top:2px solid #eee;padding-top:20px;">
+    <p>Generated on ${new Date().toLocaleString('hi-IN')}</p>
+    <p class="no-print">Press <strong>Ctrl+P</strong> to save as PDF</p>
+</div>
+</body></html>`;
+
+    const blob=new Blob([html],{type:'text/html'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`outward-report-${date}.html`;
+    a.click();
+    showSync('📄 PDF Report ready! Open file & Ctrl+P','success');
+}
+
+function showActivity(flogs=null){
+    const displayLogs=flogs||logs;
+    document.getElementById('activityCount').textContent=logs.length;
+    const list=document.getElementById('activityList');
+
+    if(displayLogs.length===0){
+        list.innerHTML='<div class="empty-state"><h3>📭 No Activity Yet</h3><p>Activity will appear when you add/edit/delete records</p></div>';
+        return;
+    }
+
+    let html='';
+    displayLogs.slice().reverse().forEach(l=>{
+        html+=`<div class="activity-item ${l.type}">
+            <div class="activity-header">
+                <span><strong>${l.type.toUpperCase()}</strong></span>
+                <span>${new Date(l.time).toLocaleString('hi-IN')}</span>
+            </div>
+            <div class="activity-details">${l.details}</div>
+        </div>`;
+    });
+    list.innerHTML=html;
+}
+
+function filterActivity(){
+    const date=document.getElementById('aDate').value;
+    const type=document.getElementById('aType').value;
+
+    const filtered=logs.filter(l=>{
+        if(date && new Date(l.time).toISOString().split('T')[0]!==date)return false;
+        if(type && l.type!==type)return false;
+        return true;
+    });
+
+    showActivity(filtered);
+    showSync(`🔍 Found ${filtered.length} activities`,'success');
+}
+
+function clearActivityFilter(){
+    document.getElementById('aDate').value='';
+    document.getElementById('aType').value='';
+    showActivity();
+    showSync('✖ Filters cleared','success');
+}
+
+function addLog(type,details){
+    logs.push({id:Date.now(),type,details,time:new Date().toISOString()});
+    saveLogs();
+    updateCounts();
+}
+
+function saveData(){localStorage.setItem('data',JSON.stringify(data));updateCounts();}
+function saveLogs(){localStorage.setItem('logs',JSON.stringify(logs));}
+
+function showSync(msg,type){
+    const el=document.getElementById('sync');
+    el.textContent=msg;
+    el.style.background=type==='success'?'#4caf50':'#f44336';
+    el.style.display='block';
+    setTimeout(()=>el.style.display='none',3000);
+}
+
+function editRecord(id){
+    const r=data.find(d=>d.id===id);
+    if(!r)return;
+    document.getElementById('date').value=r.date;
+    document.getElementById('model').value=r.model;
+    document.getElementById('qty').value=r.qty;
+    document.getElementById('serialNo').value=r.serialNo;
+    document.getElementById('address').value=r.address;
+    document.getElementById('dcNo').value=r.dcNo;
+    document.getElementById('gemInvoice').value=r.gemInvoice;
+    document.getElementById('docket').value=r.docket;
+    editId=id;
+    showTab('entry');
+}
+
+function deleteRecord(id){
+    if(!confirm('🗑️ Delete this record?'))return;
+    const r=data.find(d=>d.id===id);
+    data=data.filter(d=>d.id!==id);
+    addLog('deleted','Deleted: '+r.model+' (Qty: '+r.qty+')');
+    saveData();
+    showRecords();
+    showSync('🗑️ Record deleted!','success');
+}
+
+function importExcel(e){
+    const file=e.target.files[0];
+    if(!file)return;
+    if(!file.name.match(/\.xlsx?$/i)){
+        showSync('❌ Only Excel files allowed!','error');
+        e.target.value='';
+        return;
+    }
+
+    const prog=document.getElementById('importProgress');
+    prog.style.display='block';
+    prog.innerHTML='📊 Reading Excel file...';
+
+    const reader=new FileReader();
+    reader.onload=ev=>{
+        try{
+            const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+            const sh=wb.Sheets[wb.SheetNames[0]];
+            const rows=XLSX.utils.sheet_to_json(sh,{header:1});
+            let count=0;
+
+            for(let i=1;i<rows.length;i++){
+                const r=rows[i];
+                if(!r||r.length<3)continue;
+
+                let dateVal=r[0];
+                let formattedDate='';
+                if(typeof dateVal==='number'){
+                    const d=XLSX.SSF.parse_date_code(dateVal);
+                    formattedDate=d.y+'-'+String(d.m).padStart(2,'0')+'-'+String(d.d).padStart(2,'0');
+                }else{
+                    formattedDate=dateVal||new Date().toISOString().split('T')[0];
+                }
+
+                data.push({
+                    id:Date.now()+i,
+                    date:formattedDate,
+                    model:r[1]?r[1].toString().trim():'',
+                    qty:+r[2]||0,
+                    serialNo:r[3]?r[3].toString().trim():'',
+                    address:r[4]?r[4].toString().trim():'',
+                    dcNo:r[5]?r[5].toString().trim():'',
+                    gemInvoice:r[6]?r[6].toString().trim():'',
+                    docket:r[7]?r[7].toString().trim():''
+                });
+                count++;
+            }
+
+            saveData();
+            addLog('imported','Imported '+count+' records from Excel');
+            prog.innerHTML='✅ Successfully imported '+count+' records!';
+            showSync('🎉 '+count+' records imported!','success');
+            setTimeout(()=>{
+                prog.style.display='none';
+                e.target.value='';
+                showTab('records');
+            },2000);
+        }catch(err){
+            prog.innerHTML='❌ Error: '+err.message;
+            setTimeout(()=>prog.style.display='none',3000);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function logout(){
+    if(confirm('🚪 Logout?')){
+        localStorage.clear();
+        location.reload();
+    }
+}
+
+window.onload=init;
+</script>
+</body>
+</html>
