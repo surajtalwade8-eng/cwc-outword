@@ -87,6 +87,8 @@ h2,h3{margin-bottom:20px;color:#333;}
                 <div class="form-row">
                     <div><label>Date *</label><input type="date" id="date" required></div>
                     <div><label>Model *</label><input type="text" id="model" required></div>
+                    <div><label>Make Model</label><input type="text" id="makeModel" placeholder="HP CF283A"></div>
+                    <div><label>Cartridge Type</label><input type="text" id="cartridgeType" placeholder="Toner/Ink"></div>
                     <div><label>Qty *</label><input type="number" id="qty" min="1" required></div>
                     <div><label>Serial No</label><input type="text" id="serialNo"></div>
                     <div><label>Address</label><textarea id="address"></textarea></div>
@@ -187,6 +189,8 @@ function saveEntry(e){
         id:editId||Date.now(),
         date:document.getElementById('date').value,
         model:document.getElementById('model').value.trim(),
+        makeModel:document.getElementById('makeModel').value.trim(),
+        cartridgeType:document.getElementById('cartridgeType').value.trim(),
         qty:+document.getElementById('qty').value,
         serialNo:document.getElementById('serialNo').value.trim(),
         address:document.getElementById('address').value.trim(),
@@ -194,6 +198,7 @@ function saveEntry(e){
         gemInvoice:document.getElementById('gemInvoice').value.trim(),
         docket:document.getElementById('docket').value.trim()
     };
+
     if(editId){
         const i=data.findIndex(r=>r.id===editId);
         data[i]=entry;
@@ -210,8 +215,10 @@ function saveEntry(e){
 
 function resetForm(){
     document.querySelector('form').reset();
-    document.getElementById('date').valueAsDate=new Date();
-    editId=null;
+    document.getElementById('date').valueAsDate = new Date();
+    document.getElementById('makeModel').value = '';
+    document.getElementById('cartridgeType').value = '';
+    editId = null;
 }
 
 function showRecords(fdata=null){
@@ -225,13 +232,15 @@ function showRecords(fdata=null){
     }
 
     let html='<div class="table-wrap"><table><thead><tr>';
-    html+='<th>Date</th><th>Model</th><th>Qty</th><th>Serial No</th><th>Address</th><th>DC No</th><th>GEM Invoice</th><th>Docket</th><th>Actions</th>';
+    html+='<th>Date</th><th>Model</th><th>Make Model</th><th>Cartridge Type</th><th>Qty</th><th>Serial No</th><th>Address</th><th>DC No</th><th>GEM Invoice</th><th>Docket</th><th>Actions</th>';
     html+='</tr></thead><tbody>';
 
     displayData.sort((a,b)=>new Date(b.date)-new Date(a.date)).forEach(r=>{
         html+=`<tr>
             <td>${new Date(r.date).toLocaleDateString('hi-IN')}</td>
             <td><strong>${r.model}</strong></td>
+            <td>${r.makeModel||'-'}</td>
+            <td>${r.cartridgeType||'-'}</td>
             <td style="color:#4caf50;font-weight:600;">${r.qty}</td>
             <td>${r.serialNo||'-'}</td>
             <td>${r.address||'-'}</td>
@@ -501,6 +510,8 @@ function editRecord(id){
     if(!r)return;
     document.getElementById('date').value=r.date;
     document.getElementById('model').value=r.model;
+    document.getElementById('makeModel').value = r.makeModel || '';
+    document.getElementById('cartridgeType').value = r.cartridgeType || '';
     document.getElementById('qty').value=r.qty;
     document.getElementById('serialNo').value=r.serialNo;
     document.getElementById('address').value=r.address;
