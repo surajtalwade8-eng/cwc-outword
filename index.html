@@ -646,16 +646,32 @@ var cfg={apiKey:"AIzaSyBuB2g931JTbEM7o7DaQZKOL7IGH4FaU70",
 firebase.initializeApp(cfg);
 var auth=firebase.auth();
 var db=firebase.database(); 
-document.getElementById('lBtn').addEventListener('click',function(){
-  var em=document.getElementById('lEmail').value.trim();
-  var pw=document.getElementById('lPass').value;
-  var er=document.getElementById('lerr');
-  if(!em||!pw){er.textContent='❌ Email & Password daalo';return;}
-  er.textContent='⏳ Logging in...';
-  auth.signInWithEmailAndPassword(em,pw).then(function(){er.textContent='';}).catch(function(e){er.textContent='❌ Wrong email/password';});
+// Firebase Login
+document.getElementById('lBtn').onclick = function(){
+  var email = document.getElementById('lEmail').value;
+  var pass = document.getElementById('lPass').value;
+  var err = document.getElementById('lerr');
+  
+  firebase.auth().signInWithEmailAndPassword(email, pass)
+  .then(function(){
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.querySelector('.container').style.display = 'block';
+    document.getElementById('userInfo').innerHTML = 'Admin';
+    init();
+  })
+  .catch(function(e){
+    document.getElementById('lerr').innerHTML = '❌ ' + e.message;
+  });
+};
+
+// Auto check login
+firebase.auth().onAuthStateChanged(function(user){
+  if(user){
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.querySelector('.container').style.display = 'block';
+    init();
+  }
 });
-document.getElementById('lPass').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('lBtn').click();});
-auth.onAuthStateChanged(function(user){
   if(user){
     document.getElementById('lOverlay').style.display='none';
     document.querySelector('.container').style.display='block';
