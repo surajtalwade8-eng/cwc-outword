@@ -5,6 +5,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Outward Management</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -161,21 +163,30 @@ function init(){
     loadStorage();
     showTab('entry');
 }
-
 function loadStorage(){
-    const d=localStorage.getItem('data');
-    if(d)data=JSON.parse(d);
-    const l=localStorage.getItem('logs');
-    if(l)logs=JSON.parse(l);
-    db.ref('outward').on('value',function(snap){
-        if(snap.val()){
-            data=snap.val();
-            localStorage.setItem('data',JSON.stringify(data));
-            updateCounts();
-            showRecords();
-        }
-    });
+  // Local first
+  const d=localStorage.getItem('data'); if(d)data=JSON.parse(d);
+  const l=localStorage.getItem('logs'); if(l)logs=JSON.parse(l);
+  
+  // Firebase only if loaded
+  if(window.firebase && firebase.database){
+    try{
+      var db=firebase.database();
+      db.ref('outward').on('value',snap=>{
+        if(snap.val()){ data=snap.val(); localStorage.setItem('data',JSON.stringify(data)); updateCounts(); showRecords(); }
+      });
+    }catch(e){console.log('Firebase offline:',e);}
+  }
 }
+
+
+function saveData(){
+  localStorage.setItem('data',JSON.stringify(data)); updateCounts();
+  if(typeof firebase!=='undefined'){
+    var db=firebase.database(); db.ref('outward').set(data);
+  }
+}
+
     updateCounts();
 
 function updateCounts(){
@@ -625,12 +636,16 @@ window.onload=function(){};
 <!-- Firebase Auth -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 (function(){
-var cfg={apiKey:"AIzaSyBuB2g931JTbEM7o7DaQZKOL7IGH4FaU70",authDomain:"cwc-outword.firebaseapp.com",projectId:"cwc-outword",storageBucket:"cwc-outword.firebasestorage.app",messagingSenderId:"47730329297",appId:"1:47730329297:web:dbaeda52fe5cf15d5367f0",databaseURL:"https://cwc-outword-default-rtdb.asia-southeast1.firebasedatabase.app/"};
+var cfg={apiKey:"AIzaSyBuB2g931JTbEM7o7DaQZKOL7IGH4FaU70",
+  authDomain:"cwc-outword.firebaseapp.com",
+  databaseURL:"https://cwc-outword-default-rtdb.asia-southeast1.firebasedatabase.app/",
+  projectId:"cwc-outword"
+};
 firebase.initializeApp(cfg);
 var auth=firebase.auth();
-var db=firebase.database();
+var db=firebase.database(); 
 document.getElementById('lBtn').addEventListener('click',function(){
   var em=document.getElementById('lEmail').value.trim();
   var pw=document.getElementById('lPass').value;
