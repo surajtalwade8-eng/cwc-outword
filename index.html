@@ -646,43 +646,36 @@ var cfg={apiKey:"AIzaSyBuB2g931JTbEM7o7DaQZKOL7IGH4FaU70",
 firebase.initializeApp(cfg);
 var auth=firebase.auth();
 var db=firebase.database(); 
-// Firebase Login
+// Firebase Login - CLEAN VERSION
 document.getElementById('lBtn').onclick = function(){
-  var email = document.getElementById('lEmail').value;
+  var email = document.getElementById('lEmail').value.trim();
   var pass = document.getElementById('lPass').value;
   var err = document.getElementById('lerr');
   
+  err.textContent = '⏳ Logging in...';
   firebase.auth().signInWithEmailAndPassword(email, pass)
   .then(function(){
-    document.getElementById('loginOverlay').style.display = 'none';
+    err.textContent = '✅ Login successful!';
+    document.getElementById('lOverlay').style.display = 'none';
     document.querySelector('.container').style.display = 'block';
-    document.getElementById('userInfo').innerHTML = 'Admin';
-    init();
+    setTimeout(init, 500);
   })
   .catch(function(e){
-    document.getElementById('lerr').innerHTML = '❌ ' + e.message;
+    err.textContent = '❌ ' + e.message;
   });
 };
 
-// Auto check login
+// SINGLE Auto-check (page load/reload)
 firebase.auth().onAuthStateChanged(function(user){
   if(user){
-    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('lOverlay').style.display = 'none';
     document.querySelector('.container').style.display = 'block';
     init();
-  }
-});
-  if(user){
-    document.getElementById('lOverlay').style.display='none';
-    document.querySelector('.container').style.display='block';
-    if(!window._s){window._s=true;init();}
   } else {
-    document.getElementById('lOverlay').style.display='flex';
-    document.querySelector('.container').style.display='none';
-    window._s=false;
+    document.getElementById('lOverlay').style.display = 'flex';
+    document.querySelector('.container').style.display = 'none';
   }
 });
-})();
 </script>
 </body>
 </html>
