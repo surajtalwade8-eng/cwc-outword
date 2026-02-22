@@ -6,6 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Outward Management</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:Arial,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;padding:10px;}
@@ -55,9 +57,30 @@ tr:hover{background:#f8f9fa;}
 .empty-state{text-align:center;padding:50px;color:#999;}
 h2,h3{margin-bottom:20px;color:#333;}
 #userInfo{margin-top:10px;font-size:14px;}
+
+.login-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:10000;}
+.login-box{background:white;padding:40px;border-radius:15px;box-shadow:0 15px 35px rgba(0,0,0,0.3);text-align:center;max-width:400px;width:90%;}
+.login-box h2{font-size:1.8em;color:#1e3c72;margin-bottom:10px;}
+.login-box input{width:100%;padding:12px;margin:10px 0;border:2px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box;}
+.login-box input:focus{border-color:#667eea;outline:none;}
+.login-btn{width:100%;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-weight:600;}
+.login-btn:hover{opacity:0.9;}
+#loginError{color:#f44336;margin-top:10px;font-size:14px;}
+
 </style>
 </head>
 <body>
+
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-box">
+    <h2>🔐 CWC Outword </h2>
+    <input type="email" id="loginEmail" placeholder="User">
+    <input type="password" id="loginPass" placeholder="password">
+    <button class="login-btn" onclick="doLogin()">LOGIN</button>
+    <p id="loginError"></p>
+  </div>
+</div>
+<div class="container" style="display:none;">
 <div class="container">
     <div class="header">
         <button class="logout" onclick="logout()">Logout</button>
@@ -377,6 +400,16 @@ tr:nth-child(even){background:#f9f9f9;}
 .log-item.deleted{border-color:#f44336;background:#ffebee;}
 .log-item.imported{border-color:#2196f3;background:#e3f2fd;}
 @media print{body{margin:15px;}.no-print{display:none;}}
+
+.login-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:10000;}
+.login-box{background:white;padding:40px;border-radius:15px;box-shadow:0 15px 35px rgba(0,0,0,0.3);text-align:center;max-width:400px;width:90%;}
+.login-box h2{font-size:1.8em;color:#1e3c72;margin-bottom:10px;}
+.login-box input{width:100%;padding:12px;margin:10px 0;border:2px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box;}
+.login-box input:focus{border-color:#667eea;outline:none;}
+.login-btn{width:100%;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-weight:600;}
+.login-btn:hover{opacity:0.9;}
+#loginError{color:#f44336;margin-top:10px;font-size:14px;}
+
 </style>
 </head><body>
 <h1>📦 Daily Outward Report</h1>
@@ -597,13 +630,48 @@ function importExcel(e){
     reader.readAsArrayBuffer(file);
 }
 
-function logout(){
-    if(confirm('🚪 Logout?')){
-        localStorage.clear();
-        location.reload();
-    }
+
+// FIREBASE
+const firebaseConfig = {
+  apiKey: "AIzaSyBuB2g931JTbEM7o7DaQZKOL7IGH4FaU70",
+  authDomain: "cwc-outword.firebaseapp.com",
+  projectId: "cwc-outword",
+  storageBucket: "cwc-outword.firebasestorage.app",
+  messagingSenderId: "47730329297",
+  appId: "1:47730329297:web:dbaeda52fe5cf15d5367f0",
+  databaseURL: "https://cwc-outword-default-rtdb.asia-southeast1.firebasedatabase.app/"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = 'Logging in...';
+
+  auth.signInWithEmailAndPassword(email, pass)
+    .then(() => {
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.querySelector('.container').style.display = 'block';
+    })
+    .catch(err => errEl.textContent = '❌ ' + err.message);
 }
 
+function logout(){
+  auth.signOut().then(() => location.reload());
+}
+
+auth.onAuthStateChanged(user => {
+  if(user){
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.querySelector('.container').style.display = 'block';
+    init();
+  } else {
+    document.getElementById('loginOverlay').style.display = 'flex';
+    document.querySelector('.container').style.display = 'none';
+  }
+});
 window.onload=init;
 </script>
 </body>
