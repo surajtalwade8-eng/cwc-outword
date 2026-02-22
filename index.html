@@ -177,7 +177,6 @@ function loadStorage(){
     });
 }
     updateCounts();
-}
 
 function updateCounts(){
     document.getElementById('recordCount').textContent=data.length;
@@ -631,7 +630,7 @@ window.onload=function(){};
 var cfg={apiKey:"AIzaSyBuB2g931JTbEM7o7DaQZKOL7IGH4FaU70",authDomain:"cwc-outword.firebaseapp.com",projectId:"cwc-outword",storageBucket:"cwc-outword.firebasestorage.app",messagingSenderId:"47730329297",appId:"1:47730329297:web:dbaeda52fe5cf15d5367f0",databaseURL:"https://cwc-outword-default-rtdb.asia-southeast1.firebasedatabase.app/"};
 firebase.initializeApp(cfg);
 var auth=firebase.auth();
-var db=firebase.detabase();
+var db=firebase.database();
 document.getElementById('lBtn').addEventListener('click',function(){
   var em=document.getElementById('lEmail').value.trim();
   var pw=document.getElementById('lPass').value;
