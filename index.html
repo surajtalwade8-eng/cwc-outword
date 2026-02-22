@@ -5,9 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Outward Management</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:Arial,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;padding:10px;}
@@ -57,31 +55,12 @@ tr:hover{background:#f8f9fa;}
 .empty-state{text-align:center;padding:50px;color:#999;}
 h2,h3{margin-bottom:20px;color:#333;}
 #userInfo{margin-top:10px;font-size:14px;}
-
-.login-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:10000;}
-.login-box{background:white;padding:40px;border-radius:15px;box-shadow:0 15px 35px rgba(0,0,0,0.3);text-align:center;max-width:400px;width:90%;}
-.login-box h2{font-size:1.8em;color:#1e3c72;margin-bottom:10px;}
-.login-box input{width:100%;padding:12px;margin:10px 0;border:2px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box;}
-.login-box input:focus{border-color:#667eea;outline:none;}
-.login-btn{width:100%;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-weight:600;}
-.login-btn:hover{opacity:0.9;}
-#loginError{color:#f44336;margin-top:10px;font-size:14px;}
-
+.login-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#1e3c72,#2a5298);display:flex;align-items:center;justify-content:center;z-index:99999;}.login-box{background:white;padding:40px;border-radius:15px;box-shadow:0 20px 50px rgba(0,0,0,0.4);text-align:center;max-width:380px;width:90%;}.login-box h2{font-size:1.8em;color:#1e3c72;margin-bottom:5px;}.login-box p{color:#999;margin-bottom:20px;font-size:13px;}.lbl{width:100%;padding:12px;margin:7px 0;border:2px solid #eee;border-radius:8px;font-size:15px;box-sizing:border-box;}.lbl:focus{border-color:#667eea;outline:none;}.lbtn{width:100%;padding:13px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px;}#lerr{color:#f44336;font-size:13px;margin-top:8px;}
 </style>
 </head>
 <body>
-
-<div id="loginOverlay" class="login-overlay">
-  <div class="login-box">
-    <h2>🔐 CWC Outword </h2>
-    <input type="email" id="loginEmail" placeholder="User">
-    <input type="password" id="loginPass" placeholder="password">
-    <button class="login-btn" onclick="doLogin()">LOGIN</button>
-    <p id="loginError"></p>
-  </div>
-</div>
+<div id="lOverlay" class="login-overlay"><div class="login-box"><h2>📦 Login</h2><p>Cartridge Outward Management</p><input class="lbl" type="email" id="lEmail" placeholder="Email address"><input class="lbl" type="password" id="lPass" placeholder="Password"><button class="lbtn" id="lBtn">🔐 LOGIN</button><p id="lerr"></p></div></div>
 <div class="container" style="display:none;">
-<div class="container">
     <div class="header">
         <button class="logout" onclick="logout()">Logout</button>
         <h1>📦 Outward Management</h1>
@@ -188,6 +167,15 @@ function loadStorage(){
     if(d)data=JSON.parse(d);
     const l=localStorage.getItem('logs');
     if(l)logs=JSON.parse(l);
+    db.ref('outward').on('value',function(snap){
+        if(snap.val()){
+            data=snap.val();
+            localStorage.setItem('data',JSON.stringify(data));
+            updateCounts();
+            showRecords();
+        }
+    });
+}
     updateCounts();
 }
 
@@ -200,7 +188,7 @@ function showTab(tab){
     document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
     document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
     document.getElementById(tab).classList.add('active');
-    event.target.classList.add('active');
+    try{if(event&&event.target&&event.target.classList)event.target.classList.add('active');}catch(ex){}
     if(tab==='records')showRecords();
     if(tab==='reports')showReports();
     if(tab==='activity')showActivity();
@@ -400,16 +388,7 @@ tr:nth-child(even){background:#f9f9f9;}
 .log-item.deleted{border-color:#f44336;background:#ffebee;}
 .log-item.imported{border-color:#2196f3;background:#e3f2fd;}
 @media print{body{margin:15px;}.no-print{display:none;}}
-
-.login-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:10000;}
-.login-box{background:white;padding:40px;border-radius:15px;box-shadow:0 15px 35px rgba(0,0,0,0.3);text-align:center;max-width:400px;width:90%;}
-.login-box h2{font-size:1.8em;color:#1e3c72;margin-bottom:10px;}
-.login-box input{width:100%;padding:12px;margin:10px 0;border:2px solid #ddd;border-radius:8px;font-size:15px;box-sizing:border-box;}
-.login-box input:focus{border-color:#667eea;outline:none;}
-.login-btn{width:100%;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-weight:600;}
-.login-btn:hover{opacity:0.9;}
-#loginError{color:#f44336;margin-top:10px;font-size:14px;}
-
+.login-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#1e3c72,#2a5298);display:flex;align-items:center;justify-content:center;z-index:99999;}.login-box{background:white;padding:40px;border-radius:15px;box-shadow:0 20px 50px rgba(0,0,0,0.4);text-align:center;max-width:380px;width:90%;}.login-box h2{font-size:1.8em;color:#1e3c72;margin-bottom:5px;}.login-box p{color:#999;margin-bottom:20px;font-size:13px;}.lbl{width:100%;padding:12px;margin:7px 0;border:2px solid #eee;border-radius:8px;font-size:15px;box-sizing:border-box;}.lbl:focus{border-color:#667eea;outline:none;}.lbtn{width:100%;padding:13px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px;}#lerr{color:#f44336;font-size:13px;margin-top:8px;}
 </style>
 </head><body>
 <h1>📦 Daily Outward Report</h1>
@@ -527,7 +506,11 @@ function addLog(type,details){
     updateCounts();
 }
 
-function saveData(){localStorage.setItem('data',JSON.stringify(data));updateCounts();}
+function saveData(){
+    localStorage.setItem('data',JSON.stringify(data));
+    updateCounts();
+    db.ref('outward').set(data);
+}
 function saveLogs(){localStorage.setItem('logs',JSON.stringify(logs));}
 
 function showSync(msg,type){
@@ -630,49 +613,46 @@ function importExcel(e){
     reader.readAsArrayBuffer(file);
 }
 
-
-// FIREBASE
-const firebaseConfig = {
-  apiKey: "AIzaSyBuB2g931JTbEM7o7DaQZKOL7IGH4FaU70",
-  authDomain: "cwc-outword.firebaseapp.com",
-  projectId: "cwc-outword",
-  storageBucket: "cwc-outword.firebasestorage.app",
-  messagingSenderId: "47730329297",
-  appId: "1:47730329297:web:dbaeda52fe5cf15d5367f0",
-  databaseURL: "https://cwc-outword-default-rtdb.asia-southeast1.firebasedatabase.app/"
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-
-function doLogin(){
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPass').value;
-  const errEl = document.getElementById('loginError');
-  errEl.textContent = 'Logging in...';
-
-  auth.signInWithEmailAndPassword(email, pass)
-    .then(() => {
-      document.getElementById('loginOverlay').style.display = 'none';
-      document.querySelector('.container').style.display = 'block';
-    })
-    .catch(err => errEl.textContent = '❌ ' + err.message);
-}
-
 function logout(){
-  auth.signOut().then(() => location.reload());
+    if(confirm('🚪 Logout?')){
+        try{firebase.auth().signOut();}catch(e){}
+        localStorage.clear();
+        location.reload();
+    }
 }
+window.onload=function(){};
+</script>
 
-auth.onAuthStateChanged(user => {
+<!-- Firebase Auth -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script>
+(function(){
+var cfg={apiKey:"AIzaSyBuB2g931JTbEM7o7DaQZKOL7IGH4FaU70",authDomain:"cwc-outword.firebaseapp.com",projectId:"cwc-outword",storageBucket:"cwc-outword.firebasestorage.app",messagingSenderId:"47730329297",appId:"1:47730329297:web:dbaeda52fe5cf15d5367f0",databaseURL:"https://cwc-outword-default-rtdb.asia-southeast1.firebasedatabase.app/"};
+firebase.initializeApp(cfg);
+var auth=firebase.auth();
+var db=firebase.database();
+document.getElementById('lBtn').addEventListener('click',function(){
+  var em=document.getElementById('lEmail').value.trim();
+  var pw=document.getElementById('lPass').value;
+  var er=document.getElementById('lerr');
+  if(!em||!pw){er.textContent='❌ Email & Password daalo';return;}
+  er.textContent='⏳ Logging in...';
+  auth.signInWithEmailAndPassword(em,pw).then(function(){er.textContent='';}).catch(function(e){er.textContent='❌ Wrong email/password';});
+});
+document.getElementById('lPass').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('lBtn').click();});
+auth.onAuthStateChanged(function(user){
   if(user){
-    document.getElementById('loginOverlay').style.display = 'none';
-    document.querySelector('.container').style.display = 'block';
-    init();
+    document.getElementById('lOverlay').style.display='none';
+    document.querySelector('.container').style.display='block';
+    if(!window._s){window._s=true;init();}
   } else {
-    document.getElementById('loginOverlay').style.display = 'flex';
-    document.querySelector('.container').style.display = 'none';
+    document.getElementById('lOverlay').style.display='flex';
+    document.querySelector('.container').style.display='none';
+    window._s=false;
   }
 });
-window.onload=init;
+})();
 </script>
 </body>
 </html>
